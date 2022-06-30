@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>thresholding-filter-browser-html</title>
+  <title>https://github.com/junhuanchen/thresholding-filter-browser-html</title>
   <script type="text/javascript">
     var DISABLE_EXCEPTION_CATCHING = 2;
   </script>
@@ -54,10 +54,14 @@
         var int=self.setInterval("update_color()", 50);
         function update_color()
         {
-          if (window._work_mode == 0) {
-            update_color_rgb();
-          } else if (window._work_mode == 1) {
-            update_color_lab();
+          try {
+            if (window._work_mode == 0) {
+              update_color_rgb();
+            } else if (window._work_mode == 1) {
+              update_color_lab();
+            }
+          } catch (e) {
+            throw e;
           }
         }
       </script>
