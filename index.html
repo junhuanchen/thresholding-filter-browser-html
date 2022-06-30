@@ -20,11 +20,14 @@
     <h2>thresholding-filter-browser-html</h2>
     <div class="caption">imageSrc <input type="file" id="fileInput" name="file" /></div>
     <!-- <canvas id="imageCanvas" width="320" width="240"></canvas> -->
-    <img id="imageSrc" alt="No Image need to selected " src="https://github.githubassets.com/images/modules/profile/badge--acv-64.png"/>
+    <img id="imageSrc" alt="No Image need to selected jpg or png image"/>
     <canvas id="imageDest">
       <button onclick="callRender();">adaptiveThreshold</button>
       <script type="text/javascript">
+        window._work_mode = 0;
         let imgElement = document.getElementById("imageSrc");
+        imgElement.src = "http://127.0.0.1:18811";
+        imgElement.crossOrigin = '';
         // let imageCanvas = document.getElementById("imageCanvas");
         let inputElement = document.getElementById("fileInput");
         let outputElement = document.getElementById("imageDest");
@@ -48,7 +51,15 @@
           }
           cv.imshow('imageDest', marker);
           marker.delete();
-          update_color_lab();
+        }
+        var int=self.setInterval("update_color()", 50);
+        function update_color()
+        {
+          if (window._work_mode == 0) {
+            update_color_rgb();
+          } else if (window._work_mode == 1) {
+            update_color_lab();
+          }
         }
       </script>
     </canvas>
@@ -59,6 +70,24 @@
       <input type="text" id="amount" style="border:0; color:#f6931f; font-weight:bold;">
       <div id="slider_range"></div>
       <script>
+        function update_color_rgb() {
+          window._work_mode = 0;
+          // console.log(cv)
+          let src = cv.imread(imgElement);
+          cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
+          let marker = new cv.Mat(224, 224, cv.CV_8UC1);
+          try {
+            min = $("#slider_range").slider("values", 0);
+            max = $("#slider_range").slider("values", 1);
+            cv.threshold(src, marker, min, max, cv.THRESH_BINARY);
+          } catch (e) {
+            throw e;
+          }
+          cv.imshow('imageDest', marker);
+          marker.delete();
+          src.delete();
+          $("#amount").val("阈值 " + max + " - 最大值" + max);
+        }
         $(function () {
           $("#slider_range").slider({
             range: true,
@@ -66,19 +95,7 @@
             max: 255,
             values: [0, 255],
             slide: function (event, ui) {
-              // console.log(cv)
-              let src = cv.imread(imgElement);
-              cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-              let marker = new cv.Mat(224, 224, cv.CV_8UC1);
-              try {
-                cv.threshold(src, marker, ui.values[0], ui.values[1], cv.THRESH_BINARY);
-              } catch (e) {
-                throw e;
-              }
-              cv.imshow('imageDest', marker);
-              marker.delete();
-              src.delete();
-              $("#amount").val("阈值 " + ui.values[0] + " - 最大值" + ui.values[1]);
+              update_color_rgb();
             }
           });
           $("#amount").val("阈值 " + $("#slider_range").slider("values", 0) +
@@ -113,6 +130,7 @@
       <script>
         function update_color_lab() {
           try {
+            window._work_mode = 1;
             let src = cv.imread(imgElement);
             let marker = new cv.Mat(src.cols, src.rows, cv.CV_8UC3);
             let result = new cv.Mat(src.rows, src.cols, cv.CV_8UC1);
@@ -133,46 +151,16 @@
             b_min = b_min + 128
             b_max = b_max + 128
 
-            // console.log(
-            //   l_min * 255 / 100, l_max * 255 / 100,
-            //   a_min + 128, a_max + 128,
-            //   b_min + 128, b_max + 128
-            // )
-            // min = new cv.Mat(1, 1, cv.CV_8UC3, new cv.Scalar(
-            //     l_min * 255 / 100,
-            //     a_min + 128,
-            //     b_min + 128
-            // ))
-            // max = new cv.Mat(1, 1, cv.CV_8UC3, new cv.Scalar(
-            //     l_max * 255 / 100,
-            //     a_max + 128,
-            //     b_max + 128
-            // ))
+            // console.log(l_min, l_max, a_min, a_max, b_min, b_max)
+
+            min = new cv.Mat(3, 1, cv.CV_8UC3, new cv.Scalar(l_min, a_min, b_min));
+
+            max = new cv.Mat(3, 1, cv.CV_8UC3, new cv.Scalar(l_max, a_max, b_max));
+
             // console.log(min, max, marker)
-            // cv.inRange(marker, min, max, marker);
-            // cv.cvtColor(marker, marker, cv.COLOR_Lab2RGB, 0);
 
-            // lMin = l_min > l_max ? l_max : l_min
-            // lMax = l_min > l_max ? l_min : l_max
+            cv.inRange(marker, min, max, result);
 
-            // aMin = a_min > a_max ? a_max : a_min
-            // aMax = a_min > a_max ? a_min : a_max
-
-            // bMin = b_min > b_max ? b_max : b_min
-            // bMax = b_min > b_max ? b_min : b_max
-
-            invert = true
-            for (y = 0; y <= marker.cols; y++) {
-                for (x = 0; x <= marker.rows; x++) {
-                  src_pos = x * marker.step[0] + y * marker.step[1]
-                  dst_pos = x * result.step[0] + y * result.step[1]
-                  l = marker.data[src_pos + 0]
-                  a = marker.data[src_pos + 1]
-                  b = marker.data[src_pos + 2]
-                  result.data[dst_pos] = ((l_min <= l && l <= l_max && a_min <= a && a <= a_max && b_min <= b && b <= b_max) ? 255 : 0); // ^ invert
-              }
-            }
-            // console.log(marker)
             cv.imshow('imageDest', result);
             marker.delete();
             result.delete();
@@ -202,7 +190,7 @@
             min: 0,
             max: 100,
             value: 0,
-            stop: function (event, ui) {
+            slide: function (event, ui) {
               update_color_lab();
             }
           });
@@ -212,7 +200,7 @@
             min: 0,
             max: 100,
             value: 100,
-            stop: function (event, ui) {
+            slide: function (event, ui) {
               update_color_lab();
             }
           });
@@ -221,7 +209,7 @@
             min: -128,
             max: 127,
             value: -128,
-            stop: function (event, ui) {
+            slide: function (event, ui) {
               update_color_lab();
             }
           });
@@ -230,7 +218,7 @@
             min: -128,
             max: 127,
             value: 127,
-            stop: function (event, ui) {
+            slide: function (event, ui) {
               update_color_lab();
             }
           });
@@ -239,7 +227,7 @@
             min: -128,
             max: 127,
             value: -128,
-            stop: function (event, ui) {
+            slide: function (event, ui) {
               update_color_lab();
             }
           });
@@ -248,7 +236,7 @@
             min: -128,
             max: 127,
             value: 127,
-            stop: function (event, ui) {
+            slide: function (event, ui) {
               update_color_lab();
             }
           });
