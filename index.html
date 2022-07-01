@@ -11,21 +11,42 @@
   <link rel="stylesheet" href="https://apps.bdimg.com/libs/jqueryui/1.10.4/css/jquery-ui.min.css">
   <script src="https://apps.bdimg.com/libs/jquery/1.10.2/jquery.min.js"></script>
   <script src="https://apps.bdimg.com/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+  <style>
+    .input_underline {
+      border-bottom: 1px solid #dbdbdb;  
+      border-top:0px;  
+      border-left:0px;  
+      border-right:0px; 
+      width:200px;
+      color:#f6931f;
+      font-weight:bold;
+    }
+  </style>
 </head>
 
 <body>
   <div style="padding:5% 25% 5% 10%;">
     <p>
     <h2>thresholding-filter-browser-html</h2>
-    <div class="caption">imageSrc <input type="file" id="fileInput" name="file" /></div>
+    <div class="caption">
+      <button id="set_default_url">默认图片</button>
+      &nbsp;&nbsp;&nbsp;&nbsp;
+      <label for="fileInput">上传图片：</label>
+      <input type="file" id="fileInput" name="file" />
+      &nbsp;&nbsp;&nbsp;&nbsp;
+      <label for="mjpg_url">图传地址(<a href="https://wiki.sipeed.com/soft/maixpy3/zh/usage/net.html#MJPG-%E5%9B%BE%E4%BC%A0-%E6%80%8E%E4%B9%88%E7%94%A8%EF%BC%9F" target="_blank">&quest;</a>)：</label>
+      <input type="text" id="mjpg_url" class="input_underline" value="http://127.0.0.1:18811">
+      <button id="set_mjpg_url">设置</button>
+    </div>
     <!-- <canvas id="imageCanvas" width="320" width="240"></canvas> -->
-    <img id="imageSrc" alt="No Image need to selected jpg or png image"/>
+    <img id="imageSrc" alt="No Image need to selected jpg or png image" default-src="demo_color.jpg" src="demo_color.jpg"/>
     <canvas id="imageDest">
       <button onclick="callRender();">adaptiveThreshold</button>
       <script type="text/javascript">
         window._work_mode = 0;
+        let imgSrcType = 0;
         let imgElement = document.getElementById("imageSrc");
-        imgElement.src = "http://127.0.0.1:18811";
+        // imgElement.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUAAAADwCAYAAABxLb1rAAACWklEQVR42u3UAQ0AAAQAMJILIDQ5zB/iGT0VAA+lAAEBAggQQIAAAgQQIIAAAQQIIEAAAQIIEECAAAIEECCAAAEECCBAAAECCBBAgAACBBAggAABBAggQAABAggQQIAAAgQEKEBAgAACBBAggAABBAggQAABAggQQIAAAgQQIIAAAQQIIEAAAQIIEECAAAIEECCAAAEECCBAAAECCBBAgAACBBAggAABAQIIEECAAAIEECCAAAEECCBAAAECCBBAgAACBBAggAABBAggQAABAggQQIAAAgQQIIAAAQQIIEAAAQIIEECAAAIEBChAQIAAAgQQIIAAAQQIIEAAAQIIEECAAAIEECCAAAEECCBAAAECCBBAgAACBBAggAABBAggQAABAggQQIAAAgQQIIAAAQEKEBAggAABBAggQAABAggQQIAAAgQQIIAAAQQIIEAAAQIIEECAAAIEECCAAAEECCBAAAECCBBAgAACBBAggAABBAggQECAAAIEECCAAAEECCBAAAECCBBAgAACBBAggAABBAggQAABAggQQIAAAgQQIIAAAQQIIEAAAQIIEECAAAIEECCAAAEBChAQIIAAAQQIIEAAAQIIEECAAAIEECCAAAEECCBAAAECCBBAgAACBBAggAABBAggQAABAggQQIAAAgQQIIAAAQQIIEBAgAIEBAggQAABAggQQIAAAgQQIIAAAQQIIEAAAQIIEECAAAIEECCAAAEECCBAAAECCBBAgAACBBAggAABBAggQAABAggQECCAAAEECCBAAAECCBBAgAACBBAgwB0LWjfpcBjHNB8AAAAASUVORK5CYII=";
         imgElement.crossOrigin = '';
         // let imageCanvas = document.getElementById("imageCanvas");
         let inputElement = document.getElementById("fileInput");
@@ -39,6 +60,9 @@
         //   ctx.drawImage(imgElement, 0, 0, 224, 224);
         // };
         function callRender() {
+          if(imgSrcType==0) {
+            return;
+          }
           // console.log(cv)
           let src = cv.imread(imgElement);
           cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
@@ -54,6 +78,9 @@
         var int=self.setInterval("update_color()", 50);
         function update_color()
         {
+          if(imgSrcType==0) {
+            return;
+          }
           try {
             if (window._work_mode == 0) {
               update_color_rgb();
@@ -64,6 +91,14 @@
             throw e;
           }
         }
+        $('#set_mjpg_url').click(function(){
+          let mjpeg_url = $('#mjpg_url').val();
+          imgElement.src = mjpeg_url;
+          imgSrcType = 2;
+        });
+        $('#set_default_url').click(function(){
+          $('#imageSrc').attr('src', $('#imageSrc').attr('default-src'));
+        });
       </script>
     </canvas>
     </p>
@@ -103,6 +138,25 @@
           });
           $("#amount").val("阈值 " + $("#slider_range").slider("values", 0) +
             " - 最大值 " + $("#slider_range").slider("values", 1));
+
+        $('#set_amount_lab_button').click(function(){
+          let set_val = $('#set_amount_lab').val();
+          let get_vals = set_val.match(/(\-?[0-9]+)/g);
+          if(get_vals && get_vals.length==6) {
+            $('#amount_lab').val(
+              '[('+get_vals.join(', ')+')]'
+            );
+
+            $("#slider_l_min").slider("option", "value", get_vals[0]);
+            $("#slider_l_max").slider("option", "value", get_vals[1]);
+            $("#slider_a_min").slider("option", "value", get_vals[2]);
+            $("#slider_a_max").slider("option", "value", get_vals[3]);
+            $("#slider_b_min").slider("option", "value", get_vals[4]);
+            $("#slider_b_max").slider("option", "value", get_vals[5]);
+
+            update_color_lab();
+          }
+        });
         });
       </script>
     </p>
@@ -110,7 +164,11 @@
     <p>
       <div>
         <label for="amount">LAB（threshold）阈值范围</label>
-        <input type="text" id="amount_lab" style="border:0; color:#f6931f; font-weight:bold;">
+        <input type="text" id="amount_lab" class="input_underline">
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <label for="amount">设置阈值范围</label>
+        <input type="text" id="set_amount_lab" class="input_underline">
+        <button id="set_amount_lab_button">设置</button>
       </div>
       <p>
         <label for="amount">L min - max</label>
