@@ -1,5 +1,9 @@
 # Online browser preprocessing images
 
+## build opencv.js
+
+https://docs.opencv.org/4.x/d4/da1/tutorial_js_setup.html
+
 ## helper
 
 ![helper.png](./helper.png)
